@@ -1,0 +1,69 @@
+---
+title: "Homework4"
+author: "Laha Ale"
+date: "March 17, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r ex11_lib}
+library(spdep)
+library(maps)
+library(maptools)
+library(classInt)
+library(RColorBrewer)
+```
+
+## Excercise 11
+
+### (a) 
+
+```{r ex11_1}
+state.sat.scores = read.table("state-sat.dat", header=F)
+colnames(state.sat.scores) <- c("STATE","VERBAL","MATH","ELIGIBLE")
+head(state.sat.scores)
+```
+```{r ex11_2}
+# create listw
+usa.state <- map(database="state", fill=TRUE, plot=FALSE)
+state.ID <- sapply(strsplit(usa.state$names, ":"),
+                   function(x) x[1])
+
+usa.poly <- map2SpatialPolygons(usa.state, 
+                               IDs=state.ID)
+usa.nb <- poly2nb(usa.poly)
+usa.listb <- nb2listw(usa.nb, style="B")
+usa.listw <- nb2listw(usa.nb, style="W")
+
+# train SAR model
+
+x = ((state.sat.scores$STATE=="alaska") |
+       (state.sat.scores$STATE=="hawaii") | 
+       (state.sat.scores$STATE=="us"))
+
+index = c(1:nrow(state.sat.scores))[x]
+state.sat.scores.contig = state.sat.scores[-index,]
+
+# binnary weights
+stat.sat.sar.b = spautolm(ELIGIBLE~ VERBAL+MATH,
+                        data=state.sat.scores.contig,
+                        family="SAR", 
+                        listw=usa.listb, 
+                        zero.policy=TRUE)
+summary(stat.sat.sar.b)
+# row-normalized weights
+stat.sat.sar.w = spautolm(ELIGIBLE~ VERBAL+MATH,
+                        data=state.sat.scores.contig,
+                        family="SAR", 
+                        listw=usa.listw, 
+                        zero.policy=TRUE)
+summary(stat.sat.sar.w)
+```
+
+
+As we can see from the above model that both VERBAL and MATH are significant since their P-Value is small enough; therefore, we shall keep both.
+The binnary weights model is $ELIGIBLE= 390.464541-0.675203*VERBAL+0.022018*MATH$ ,and The row-normalized weights model is $ELIGIBLE=384.67658-0.79214*VERBAL+0.1395*MATH$. The ELIGIBLE has a negative relation with VERBAL(not make sense in the real world) and a positive relationship with MATH score. A possible reason VERBAL score has a negative relative with ELIGIBLE  is that if a student spends too much time on the VERBAL test, he/she may not has time to work on MATH; further, it may lower down the total score of the SAT.
+
+
