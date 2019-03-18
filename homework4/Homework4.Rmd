@@ -44,26 +44,72 @@ x = ((state.sat.scores$STATE=="alaska") |
        (state.sat.scores$STATE=="us"))
 
 index = c(1:nrow(state.sat.scores))[x]
-state.sat.scores.contig = state.sat.scores[-index,]
+state.sat.scores = state.sat.scores[-index,]
 
 # binnary weights
-stat.sat.sar.b = spautolm(ELIGIBLE~ VERBAL+MATH,
-                        data=state.sat.scores.contig,
+stat.sat.sar.b = spautolm(ELIGIBLE~ VERBAL,
+                        data=state.sat.scores,
                         family="SAR", 
                         listw=usa.listb, 
                         zero.policy=TRUE)
 summary(stat.sat.sar.b)
 # row-normalized weights
-stat.sat.sar.w = spautolm(ELIGIBLE~ VERBAL+MATH,
-                        data=state.sat.scores.contig,
+stat.sat.sar.w = spautolm(ELIGIBLE~ VERBAL,
+                        data=state.sat.scores,
                         family="SAR", 
                         listw=usa.listw, 
                         zero.policy=TRUE)
 summary(stat.sat.sar.w)
+
 ```
 
-
 As we can see from the above model that both VERBAL and MATH are significant since their P-Value is small enough; therefore, we shall keep both.
-The binnary weights model is $ELIGIBLE= 390.464541-0.675203*VERBAL+0.022018*MATH$ ,and The row-normalized weights model is $ELIGIBLE=384.67658-0.79214*VERBAL+0.1395*MATH$. The ELIGIBLE has a negative relation with VERBAL(not make sense in the real world) and a positive relationship with MATH score. A possible reason VERBAL score has a negative relative with ELIGIBLE  is that if a student spends too much time on the VERBAL test, he/she may not has time to work on MATH; further, it may lower down the total score of the SAT.
+The binnary weights model is $ELIGIBLE= 390.60579-0.653476*VERBAL$ ,and The row-normalized weights model is $ELIGIBLE=387.62517-0.65812*VERBAL$. The ELIGIBLE has a negative relation with VERBAL. A possible reason VERBAL score has a negative relative with ELIGIBLE  is that the erea higher verbal score the higher the more competitive in terms of admission for the area.
 
+### (b)
+```{r ex11_b}
+library(ggplot2)
+library(ggmap)
+library(mapdata)
+
+states <- map_data("state")
+states <- data.frame(states)
+
+states[,"sat_range"] <- 0
+names(states)[6] <- "sat"
+state.sat.scores$STATE <- unique(states$region)
+ 
+for(i in 1:nrow(states))
+{
+  for (j in 1:nrow(state.sat.scores))
+  {
+    if(grepl(state.sat.scores[j,]$STATE, states[i,]$region))
+    {
+      #sat <-  (state.sat.scores[j,]$VERBAL+state.sat.scores[j,]$MATH)/2
+      sat <- state.sat.scores[j,]$VERBAL
+      states[i,]$sat <- sat
+      if(sat <= 503)
+      {
+        states[i,]$sat_range <- "<503"
+      }else if(sat > 503 && sat <=525 )
+      {
+        states[i,]$sat_range <- "504-525"
+      }else if(sat > 525 && sat <562 )
+      {
+        states[i,]$sat_range <- "526-562"
+      }else
+      {
+        states[i,]$sat_range <- ">563"
+      }
+    }
+  }
+}
+
+ggplot(data = states) +
+  geom_polygon(aes(x = long,
+                   y = lat, 
+                   fill = sat_range,group=group),
+                   color = "white") +
+  coord_fixed(1.3)
+```
 
