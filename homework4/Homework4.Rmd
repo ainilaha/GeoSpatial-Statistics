@@ -6,8 +6,10 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,warning = F,message = F)
 ```
+
+### *Note: This file is produced by RMarkdown , and the lines start with ## are the outputs of R codes.*
 ```{r ex11_lib}
 library(spdep)
 library(maps)
@@ -23,6 +25,7 @@ library(RColorBrewer)
 ```{r ex11_1}
 state.sat.scores = read.table("state-sat.dat", header=F)
 colnames(state.sat.scores) <- c("STATE","VERBAL","MATH","ELIGIBLE")
+#state.sat.scores$ELIGIBLE = state.sat.scores$ELIGIBLE/100
 head(state.sat.scores)
 ```
 ```{r ex11_2}
@@ -37,7 +40,7 @@ usa.nb <- poly2nb(usa.poly)
 usa.listb <- nb2listw(usa.nb, style="B")
 usa.listw <- nb2listw(usa.nb, style="W")
 
-# train SAR model
+# train CAR model
 
 x = ((state.sat.scores$STATE=="alaska") |
        (state.sat.scores$STATE=="hawaii") | 
@@ -45,6 +48,89 @@ x = ((state.sat.scores$STATE=="alaska") |
 
 index = c(1:nrow(state.sat.scores))[x]
 state.sat.scores = state.sat.scores[-index,]
+
+# binnary weights
+stat.sat.car.b <- spautolm(ELIGIBLE~ VERBAL,
+                        data=state.sat.scores,
+                        family="CAR", 
+                        listw=usa.listb, 
+                        zero.policy=TRUE)
+summary(stat.sat.car.b)
+# row-normalized weights
+stat.sat.car.w <- spautolm(ELIGIBLE~ VERBAL,
+                        data=state.sat.scores,
+                        family="CAR", 
+                        listw=usa.listw, 
+                        zero.policy=TRUE)
+summary(stat.sat.car.w)
+
+```
+
+As we can see from the above model that the VERBAL is significant since their P-Value (lower than 0.05) is small enough.The binnary weights model is $ELIGIBLE= 387.83326-0.644767*VERBAL$ ,and The row-normalized weights model is $ELIGIBLE=342.236050-0.562578*VERBAL$. The ELIGIBLE has a negative relation with VERBAL. A possible reason VERBAL score has a negative relative with ELIGIBLE  is that the erea higher verbal score the higher the more competitive in terms of admission for the area. The spatial autocorrelation parameter Lambda is significant based on the corresponded P-value.
+
+### (b)
+```{r ex11_b}
+# library(ggplot2)
+# library(ggmap)
+# library(mapdata)
+# 
+# states <- map_data("state")
+# states <- data.frame(states)
+# 
+# states[,"sat_range"] <- 0
+# names(states)[6] <- "sat"
+# state.sat.scores$STATE <- unique(states$region)
+# 
+# for(i in 1:nrow(states))
+# {
+#   for (j in 1:nrow(state.sat.scores))
+#   {
+#     if(grepl(state.sat.scores[j,]$STATE, states[i,]$region))
+#     {
+#       #sat <-  (state.sat.scores[j,]$VERBAL+state.sat.scores[j,]$MATH)/2
+#       sat <- state.sat.scores[j,]$VERBAL
+#       states[i,]$sat <- sat
+#       if(sat <= 503)
+#       {
+#         states[i,]$sat_range <- "<503"
+#       }else if(sat > 503 && sat <=525 )
+#       {
+#         states[i,]$sat_range <- "504-525"
+#       }else if(sat > 525 && sat <562 )
+#       {
+#         states[i,]$sat_range <- "526-562"
+#       }else
+#       {
+#         states[i,]$sat_range <- ">563"
+#       }
+#     }
+#   }
+# }
+# 
+# ggplot(data = states) +
+#   geom_polygon(aes(x = long,
+#                    y = lat,
+#                    fill = sat_range,group=group),
+#                    color = "white") +
+#   coord_fixed(1.3)
+brks = c(0, 503, 525, 562, 563)
+
+color.pallete = rev(brewer.pal(4,"RdBu"))
+class.raw = classIntervals(var=state.sat.scores$VERBAL, n=4,
+                           style="fixed",
+                           fixedBreaks=brks, 
+                           dataPrecision=4)
+color.code.raw = findColours(class.raw, color.pallete)
+
+```
+
+Given the map, the SAT scores are spatially correlated,  and the Lambda value and its P-value also support this result.
+
+### (c) 
+```{r ex11_c}
+
+
+# train SAR model
 
 # binnary weights
 stat.sat.sar.b = spautolm(ELIGIBLE~ VERBAL,
@@ -62,54 +148,137 @@ stat.sat.sar.w = spautolm(ELIGIBLE~ VERBAL,
 summary(stat.sat.sar.w)
 
 ```
+As we can see from the above model that the VERBAL is significant since their P-Value is small enough. The binnary weights model is $ ELIGIBLE=390.60579-0.653476*VERBAL$ ,and The row-normalized weights model is $ELIGIBLE=387.62517-0.65812 * VERBAL$. The ELIGIBLE has a negative relation with VERBAL. A possible reason VERBAL score has a negative relative with ELIGIBLE is that the erea higher verbal score the higher the more competitive in terms of admission for the area. The spatial autocorrelation parameter Lambda is significant based on the corresponded P-value.
 
-As we can see from the above model that both VERBAL and MATH are significant since their P-Value is small enough; therefore, we shall keep both.
-The binnary weights model is $ELIGIBLE= 390.60579-0.653476*VERBAL$ ,and The row-normalized weights model is $ELIGIBLE=387.62517-0.65812*VERBAL$. The ELIGIBLE has a negative relation with VERBAL. A possible reason VERBAL score has a negative relative with ELIGIBLE  is that the erea higher verbal score the higher the more competitive in terms of admission for the area.
+### (d) 
+```{r ex11_d}
 
-### (b)
-```{r ex11_b}
-library(ggplot2)
-library(ggmap)
-library(mapdata)
+## add recipical colunm
+state.sat.scores[,"RC_ELIGIBLE"] <- 1.0/state.sat.scores$ELIGIBLE
 
-states <- map_data("state")
-states <- data.frame(states)
+# row-normalized weights
+stat.sat.sar.w = spautolm(RC_ELIGIBLE~ VERBAL,
+                        data=state.sat.scores,
+                        family="SAR", 
+                        listw=usa.listw, 
+                        zero.policy=TRUE)
+summary(stat.sat.sar.w)
 
-states[,"sat_range"] <- 0
-names(states)[6] <- "sat"
-state.sat.scores$STATE <- unique(states$region)
- 
-for(i in 1:nrow(states))
-{
-  for (j in 1:nrow(state.sat.scores))
-  {
-    if(grepl(state.sat.scores[j,]$STATE, states[i,]$region))
-    {
-      #sat <-  (state.sat.scores[j,]$VERBAL+state.sat.scores[j,]$MATH)/2
-      sat <- state.sat.scores[j,]$VERBAL
-      states[i,]$sat <- sat
-      if(sat <= 503)
-      {
-        states[i,]$sat_range <- "<503"
-      }else if(sat > 503 && sat <=525 )
-      {
-        states[i,]$sat_range <- "504-525"
-      }else if(sat > 525 && sat <562 )
-      {
-        states[i,]$sat_range <- "526-562"
-      }else
-      {
-        states[i,]$sat_range <- ">563"
-      }
-    }
-  }
-}
+```
+The model of recipical of ELIGIBLE is $RC\_ELIGIBLE=0.0017632 * VERBAL-0.871833$. 
+The spatial autocorrelation parameter Lambda is not significant based on the corresponded P-value in this case; threfore, it is not spatial correlated, and it is not really make sense.
 
-ggplot(data = states) +
-  geom_polygon(aes(x = long,
-                   y = lat, 
-                   fill = sat_range,group=group),
-                   color = "white") +
-  coord_fixed(1.3)
+## Excercise 12
+### (a)
+```{r ex12_a}
+
+## Constructing neighbors using distances: Columbus example
+columbus.poly <- readShapePoly(system.file("etc/shapes/columbus.shp", package="spdep")[1])
+
+##Distance based neighbors in spdep
+columbus.coords <- coordinates(columbus.poly)
+columbus.knn <- knearneigh(columbus.coords)
+columbus.knn2nb <- knn2nb(columbus.knn)
+columbus.dist.list <- nbdists(columbus.knn2nb, columbus.coords)
+columbus.dist.vec <- unlist(columbus.dist.list)
+columbus.dist.max <- max(columbus.dist.vec)
+columbus.dnn.nb <- dnearneigh(columbus.coords, 0, columbus.dist.max)
+# 25% of the maximum intercentroid distances.
+columbus.dnn.nb_25 <- dnearneigh(columbus.coords, 0, 0.25*columbus.dist.max)
+columbus.dnn.nb_25
+# 50% of the maximum intercentroid distances.
+columbus.dnn.nb_50 <- dnearneigh(columbus.coords, 0, 0.5*columbus.dist.max)
+columbus.dnn.nb_50
+# 75% of the maximum intercentroid distances.
+columbus.dnn.nb_75 <- dnearneigh(columbus.coords, 0, 0.75*columbus.dist.max)
+columbus.dnn.nb_75
 ```
 
+### (b)
+```{r ex12_b}
+# SAR model with 25% of the maximum intercentroid distances.
+columbus.dnn.listw25 = nb2listw(columbus.dnn.nb_25, style="B", zero.policy=TRUE)
+columbus.dnn.sar.out_25 = spautolm(CRIME~HOVAL+INC+OPEN+PLUMB+DISCBD, 
+                                data=columbus.poly, family="SAR",
+                                listw=columbus.dnn.listw25, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.sar.out_25)
+# SAR model with 50% of the maximum intercentroid distances.
+columbus.dnn.listw50 = nb2listw(columbus.dnn.nb_50, style="B", zero.policy=TRUE)
+columbus.dnn.sar.out_50 = spautolm(CRIME~HOVAL+INC+OPEN+PLUMB+DISCBD, 
+                                data=columbus.poly, family="SAR",
+                                listw=columbus.dnn.listw50, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.sar.out_50)
+# SAR model with 75% of the maximum intercentroid distances.
+columbus.dnn.listw75 = nb2listw(columbus.dnn.nb_75, style="B", zero.policy=TRUE)
+columbus.dnn.sar.out_75 = spautolm(CRIME~HOVAL+INC+OPEN+PLUMB+DISCBD, 
+                                data=columbus.poly, family="SAR",
+                                listw=columbus.dnn.listw75, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.sar.out_75)
+```
+As we can see from above results, the models are:
+
+SAR model with 25% of the maximum intercentroid:
+
+$CRIME = 65.614250-0.220072*HOVAL-0.909138*INC+0.132942*OPEN+0.568859*PLUMB-3.946217*DISCBD$
+
+SAR model with 50% of the maximum intercentroid:
+
+$CRIME = 64.354954-0.238251*HOVAL-0.908360*INC+0.175997*OPEN+0.481019*PLUMB-3.422517*DISCBD$
+
+SAR model with 75% of the maximum intercentroid:
+$CRIME = 56.214935-0.263497*HOVAL-0.677682*INC+0.178092*OPEN+0.599812*PLUMB-3.946217*DISCBD$
+
+As we can see from the above models the CRIME has a negative relation with HOVAL, INC, and DISCBD; and positive relation with OPEN and PLUMB. The significant corresponded with models are below. As we can see from the table below, the DISCBD become insignificant with the distance increased.
+```{r tabl1, echo=F}
+library(OpenImageR)
+image = readImage("table1.png")
+imageShow(image)
+```
+
+### (d)
+```{r ex12_d}
+# SAR model with 25% of the maximum intercentroid distances.
+columbus.dnn.listw25 = nb2listw(columbus.dnn.nb_25, style="B", zero.policy=TRUE)
+columbus.dnn.car.out_25 = spautolm(CRIME~HOVAL+INC+OPEN+PLUMB+DISCBD, 
+                                data=columbus.poly, family="CAR",
+                                listw=columbus.dnn.listw25, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.car.out_25)
+# SAR model with 50% of the maximum intercentroid distances.
+columbus.dnn.listw50 = nb2listw(columbus.dnn.nb_50, style="B", zero.policy=TRUE)
+columbus.dnn.car.out_50 = spautolm(CRIME~HOVAL+INC+OPEN+PLUMB+DISCBD, 
+                                data=columbus.poly, family="CAR",
+                                listw=columbus.dnn.listw50, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.car.out_50)
+# SAR model with 75% of the maximum intercentroid distances.
+columbus.dnn.listw75 = nb2listw(columbus.dnn.nb_75, style="B", zero.policy=TRUE)
+columbus.dnn.car.out_75 = spautolm(CRIME~HOVAL+INC+OPEN+PLUMB+DISCBD, 
+                                data=columbus.poly, family="CAR",
+                                listw=columbus.dnn.listw75, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.car.out_75)
+```
+As we can see from above results, the models are:
+
+CAR model with 25% of the maximum intercentroid:
+
+$CRIME =  65.557404-0.221292*HOVAL-0.909192*INC+0.133654*OPEN+0.579156*PLUMB-3.918245*DISCBD$
+
+CAR model with 50% of the maximum intercentroid:
+
+$CRIME = 64.712769-0.237664*HOVAL-0.902190*INC+0.162894*OPEN+0.482755*PLUMB-3.542936*DISCBD$
+
+CAR model with 75% of the maximum intercentroid:
+
+$CRIME =  60.020801-0.250413*HOVAL-0.768608*INC+0.149635*OPEN+0.511153*PLUMB-2.871965*DISCBD$
+
+As we can see from the above models the CRIME has a negative relation with HOVAL, INC, and DISCBD; and positive relation with OPEN and PLUMB. The significant corresponded with models are below. As we can see from the table below, the DISCBD become insignificant with the distance increased. Overall the SAR models and CAR models show similar results. Based on the above models and results.
+```{r tabl2, echo=F}
+library(OpenImageR)
+image = readImage("table2.png")
+imageShow(image)
+```

@@ -1,0 +1,125 @@
+---
+title: "Test 1 MATH 6344 SP 2019"
+author: "Laha Ale"
+date: "March 1, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### *Note: This file is produced by RMarkdown , and the lines start with ## are the outputs of R codes.*
+
+##Prepare Data
+
+
+```{r data}
+library(spBayes)
+library(classInt)
+library(RColorBrewer)
+library(geoR)
+#Pollution ppm 
+ppm <- c(14.3, 10.05,9.91,
+         10.15,12.31,10.39,
+         9.61,11.10,9.16,
+         9.39,12.05)
+
+#X Coordinate
+X <- c(0.35,0.80,0.41,
+       0.05,0.21,0.04,
+       0.55,0.11,0.49,
+       0.15,0.38)
+#Y Coordinate
+Y <- c(0.85,0.44,0.79,
+       0.08,0.58,0.92,
+       0.32,0.85,0.13,
+       0.08,0.83)
+# Construct dataframe
+ppm.df <- data.frame("ppm"=ppm,"X"=X,"Y"=Y)
+ppm.df
+coords <- as.matrix(ppm.df[,c("X","Y")]) 
+```
+
+## 1) Show a 3d graph for these data and contour plot
+
+### method 1 
+```{r contour}
+library(akima)
+int.ppm <-interp.new(ppm.df$X,ppm.df$Y,ppm.df$ppm,extrap=TRUE)
+image(int.ppm)
+contour(int.ppm, add=T)
+persp(int.ppm)
+persp(int.ppm,theta = -70, phi = 45, d=1)
+persp(int.ppm,theta = -70, phi = 45, d=1,col="red",shade=0.75,border=NA)
+```
+
+### method 2
+
+```{r contour1}
+library(MBA)
+library(fields) ## For using the image.plot function
+x.res <- 100
+y.res <- 100
+col.br <- colorRampPalette(c("blue", "cyan", "yellow", "red"))
+col.pal <- col.br(5)
+
+
+surf <- mba.surf(cbind(coords, ppm),
+                 no.X = x.res, no.Y = y.res, h = 5,
+                 m = 2, extend = FALSE)$xyz.est
+image.plot(surf, xaxs = "r", yaxs = "r",
+           xlab = "X", ylab = "Y", col = col.br(25))
+contour(surf, add=T)
+```
+```{r contour2,eval=F}
+
+library(rgl)
+col <- rbind(0, cbind(matrix(drape.color(surf[[3]],
+                                         col = col.br(25)), 
+                                  x.res - 1, y.res - 1), 0))
+surface3d(surf[[1]], surf[[2]], surf[[3]], col = col)
+axes3d()
+
+title3d(main = "PPM", xlab = "X", ylab = "Y", zlab = "ppm")
+drape.plot(surf[[1]], surf[[2]], surf[[3]], col = col.br(150),
+           theta = 225, phi = 50, border = FALSE, add.legend = FALSE, 
+           xlab = "X", ylab = "Y", zlab = "ppm")
+image.plot(zlim = range(surf[[3]], na.rm = TRUE), 
+           legend.only = TRUE, horizontal = FALSE)
+```
+```{r 3d, echo=F}
+library(OpenImageR)
+image = readImage("3d.png")
+imageShow(image)
+```
+Although the second method is fancier than the previous one,  it would take a long time to plot the 3D plot.
+
+## 2) Fit a variogram model of your choice, use any kind of estimation(MLE, OLS, MOM) or if the results still do not agree with the empirical variogram you can also use eyefit. 
+
+```{r variogram}
+## Load some libraries we will use
+
+bins = 20
+max.dist <- max(iDist(coords))
+ppm.vario <- variog(coords = coords, data = ppm, 
+                       uvec = (seq(0, max.dist, length = bins)))
+plot(ppm.vario)
+```
+As we can see from above the data is not really organized and it hardly use MLE, OLS, MOM to fit. Therefore, let's try to useing eyefit. 
+```{r eyefit,eval=F}
+eyefit(ppm.vario,silent=TRUE)
+```
+```{r ex6_3dd, echo=F}
+library(OpenImageR)
+image = readImage("eye_fit.png")
+imageShow(image)
+```
+We will choose data given by above eyefit. Sill $\sigma^2=15.51$ , Range $\Phi=1.33$ and Nugget $\tau^2=0.47$. I know those parameters and models are not reasonably fit the data. The data seems not suitable for spatial statistics analysis.
+
+```{r fit_vorgam, echo=F}
+fit.ppm<- variofit(ppm.vario,cov.model="gaussian",
+                       fix.nugget=FALSE, ini.cov.pars=c(15.51,1.33), 
+                       nugget=0.47)
+fit.ppm
+```

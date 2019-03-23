@@ -86,11 +86,12 @@ geary.C.se = sqrt(geary.out$estimate[3])
 
 ##SAR and CAR modeling using spdep package  
 
-nc.sids <- readShapePoly(system.file("etc/shapes/sids.shp", package="spdep")[1],ID="FIPSNO", proj4string=CRS("+proj=longlat +ellps=clrk66"))
+nc.sids <- readShapePoly(system.file("shapes/sids.shp", package="spData")[1],ID="FIPSNO",
+                         proj4string=CRS("+proj=longlat +ellps=clrk66"))
 
 rn <- sapply(slot(nc.sids, "polygons"), function(x) slot(x, "ID"))
 
-ncCC89.nb <- read.gal(system.file("etc/weights/ncCC89.gal", package="spdep")[1],
+ncCC89.nb <- read.gal(system.file("weights/ncCC89.gal", package="spData")[1],
                       region.id=rn)
 
 ##Create a map of raw SIDS rates
@@ -127,21 +128,16 @@ nc.sids.car.out = spautolm(rates.FT~ nwbir.FT, data=nc.sids, family="CAR", listw
 nc.sids.car.fitted = fitted(nc.sids.car.out)
 nc.sids$fitted.car = nc.sids.car.fitted
 
-##Draw the maps using the spplot (trellis) graphics function
-##postscript(file="nc_sids_sar_actual.eps")
-##print(spplot(nc.sids, "rates.FT", at = brks, col.regions = rev(brewer.pal(4,"RdBu")), main="a) Actual SIDS rates"))
-##dev.off()
-##postscript(file="nc_sids_sar_fitted.eps")
-##print(spplot(nc.sids, "fitted.sar", at = brks, col.regions = rev(brewer.pal(4,"RdBu")), main="b) Fitted SIDS rates from SAR model"))
-##dev.off()
 
 ##Draw the maps using the maps function
 library(maps)
 library(classInt)
 color.pallete = rev(brewer.pal(4,"RdBu"))
-class.raw = classIntervals(var=nc.sids$rates.FT, n=4, style="fixed", fixedBreaks=brks, dataPrecision=4)
+class.raw = classIntervals(var=nc.sids$rates.FT, n=4, style="fixed", 
+                           fixedBreaks=brks, dataPrecision=4)
 color.code.raw = findColours(class.raw, color.pallete)
-class.fitted = classIntervals(var=nc.sids$fitted.sar, n=4, style="fixed", fixedBreaks=brks, dataPrecision=4)
+class.fitted = classIntervals(var=nc.sids$fitted.sar, n=4, style="fixed", 
+                              fixedBreaks=brks, dataPrecision=4)
 color.code.fitted = findColours(class.fitted, color.pallete)
 
 leg.txt = c("<2.0", "2.0-3.0", "3.0-3.5",">3.5")
@@ -153,7 +149,7 @@ title("a) Raw Freeman-Tukey transformed SIDS rates" )
 legend("bottomleft", legend=leg.txt, cex=1.25, bty="n", horiz = FALSE, fill = color.pallete)
 plot(nc.sids, col=color.code.fitted)
 title("b) Fitted SIDS rates from SAR model")
-dev.off()
+
 
 
 ## Constructing neighbors using distances: Columbus example
@@ -218,10 +214,10 @@ columbus.poly$fitted.dnn.car = columbus.dnn.car.fitted
 ##Draw the maps using the spplot (trellis) graphics function
 ##postscript(file="nc_sids_sar_actual.eps")
 ##print(spplot(nc.sids, "rates.FT", at = brks, col.regions = rev(brewer.pal(4,"RdBu")), main="a) Actual SIDS rates"))
-##dev.off()
+##
 ##postscript(file="nc_sids_sar_fitted.eps")
 ##print(spplot(nc.sids, "fitted.sar", at = brks, col.regions = rev(brewer.pal(4,"RdBu")), main="b) Fitted SIDS rates from SAR model"))
-##dev.off()
+##
 
 ##detach(package:spdep)
 ##detach(package:maptools)

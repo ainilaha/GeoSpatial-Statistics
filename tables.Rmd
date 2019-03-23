@@ -1,0 +1,58 @@
+---
+title: "tables"
+author: "Laha Ale"
+date: "March 18, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\begin{center}
+\begin{table}
+\caption{Significant table for SAR models}
+ \begin{tabular}{||c c c c||} 
+ \hline
+ Variables & 25 precent SAR model & 50 precent SAR model & 75 precent SAR model \\ [0.5ex] 
+ \hline
+  HOVAL & YES & YES & YES \\ 
+ \hline
+  INC & YES & YES & YES \\ 
+ \hline
+  OPEN & NO & NO & NO \\ 
+ \hline
+  PLUMB & NO & NO & NO \\ 
+ \hline
+  DISCBD & YES & YES & NO \\ 
+ \hline
+  Lambda & NO & YES & YES \\ 
+ \hline
+\end{tabular}
+\end{table}
+\end{center}
+
+
+
+\begin{center}
+\begin{table}
+\caption{Significant table for CAR models}
+ \begin{tabular}{||c c c c||} 
+ \hline
+ Variables & 25 precent CAR model & 50 precent CAR model & 75 precent CAR model \\ [0.5ex] 
+ \hline
+  HOVAL & YES & YES & YES \\ 
+ \hline
+  INC & YES & YES & YES \\ 
+ \hline
+  OPEN & NO & NO & NO \\ 
+ \hline
+  PLUMB & NO & NO & NO \\ 
+ \hline
+  DISCBD & YES & YES & NO \\ 
+ \hline
+  Lambda & NO & YES & YES \\ 
+ \hline
+\end{tabular}
+\end{table}
+\end{center}

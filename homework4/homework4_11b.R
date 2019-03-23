@@ -8,6 +8,8 @@ states <- data.frame(states)
 
 state.sat.scores <- read.table("data/state-sat.dat", header=F)
 colnames(state.sat.scores) <- c("STATE","VERBAL","MATH","ELIGIBLE")
+?
+state.sat.scores[]
 x = ((state.sat.scores$STATE=="alaska") |
        (state.sat.scores$STATE=="hawaii") | 
        (state.sat.scores$STATE=="us"))
@@ -16,42 +18,39 @@ index = c(1:nrow(state.sat.scores))[x]
 state.sat.scores <- data.frame(state.sat.scores[-index,])
 
 
+usa.state <- map(database="state", fill=TRUE, plot=FALSE)
+state.ID <- sapply(strsplit(usa.state$names, ":"),
+                   function(x) x[1])
+
+usa.poly <- map2SpatialPolygons(usa.state, 
+                                IDs=state.ID)
+usa.nb <- poly2nb(usa.poly)
+usa.listb <- nb2listw(usa.nb, style="B")
+usa.listw <- nb2listw(usa.nb, style="W")
+
+# train CAR model
+
+x = ((state.sat.scores$STATE=="alaska") |
+       (state.sat.scores$STATE=="hawaii") | 
+       (state.sat.scores$STATE=="us"))
+
+index = c(1:nrow(state.sat.scores))[x]
+state.sat.scores = state.sat.scores[-index,]
+
+# binnary weights
+stat.sat.car.b <- spautolm(ELIGIBLE~ VERBAL,
+                           data=state.sat.scores,
+                           family="CAR", 
+                           listw=usa.listb, 
+                           zero.policy=TRUE)
+summary(stat.sat.car.b)
+# row-normalized weights
+stat.sat.car.w <- spautolm(ELIGIBLE~ VERBAL,
+                           data=state.sat.scores,
+                           family="CAR", 
+                           listw=usa.listw, 
+                           zero.policy=TRUE)
+summary(stat.sat.car.w)
 
 
-states[,"sat_range"] <- 0
-names(states)[6] <- "sat"
-state.sat.scores$STATE <- unique(states$region)
-
-
-
-
-for(i in 1:nrow(states))
-{
-  for (j in 1:nrow(state.sat.scores))
-  {
-    if(grepl(state.sat.scores[j,]$STATE, states[i,]$region))
-    {
-      sat <-  state.sat.scores[j,]$VERBAL2
-      states[i,]$sat <- sat
-      if(sat <= 503)
-      {
-        states[i,]$sat_range <- "<=503" 
-      }else if(sat >503 && sat <=525 )
-      {
-        states[i,]$sat_range <- "504-525"
-      }else if(sat >=525 && sat <562 )
-      {
-        states[i,]$sat_range <- "526-562"
-      }else
-      {
-        states[i,]$sat_range <- ">563"
-      }
-    }
-  }
-}
-
-ggplot(data = states) + 
-  geom_polygon(aes(x = long, 
-                   y = lat, fill = sat_range,group=group),color = "white") + 
-  coord_fixed(1.3)
 
