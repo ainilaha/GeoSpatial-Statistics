@@ -118,7 +118,10 @@ nc.sids.nwbir.FT = sqrt(1000) * (sqrt(nc.sids$NWBIR79/nc.sids$BIR79) + sqrt((nc.
 nc.sids$nwbir.FT = nc.sids.nwbir.FT
 ## Use errorsarlm and lagsarlm 
 ##nc.sids.sar.out = errorsarlm(rates.FT~ nwbir.FT, data=nc.sids, listw=ncCC89.listw, zero.policy=TRUE)
-nc.sids.sar.out = spautolm(rates.FT~ nwbir.FT, data=nc.sids, family="SAR", listw=ncCC89.listw, zero.policy=TRUE)
+nc.sids.sar.out = spautolm(rates.FT~ nwbir.FT,
+                           data=nc.sids, family="SAR", 
+                           listw=ncCC89.listw,
+                           zero.policy=TRUE)
 nc.sids.lagsar.out = lagsarlm(rates.FT~ nwbir.FT, data=nc.sids, listw=ncCC89.listw, zero.policy=TRUE)
 nc.sids.sar.fitted = fitted(nc.sids.sar.out)
 nc.sids$fitted.sar = nc.sids.sar.fitted
@@ -142,8 +145,7 @@ color.code.fitted = findColours(class.fitted, color.pallete)
 
 leg.txt = c("<2.0", "2.0-3.0", "3.0-3.5",">3.5")
 
-postscript(file="SidsSar.ps", horizontal=FALSE)
-par(mfrow=c(2,1), oma = c(0,0,4,0) + 0.1, mar = c(0,0,1,0) + 0.1)
+#postscript(file="SidsSar.ps", horizontal=FALSE)
 plot(nc.sids, col=color.code.raw)
 title("a) Raw Freeman-Tukey transformed SIDS rates" )
 legend("bottomleft", legend=leg.txt, cex=1.25, bty="n", horiz = FALSE, fill = color.pallete)

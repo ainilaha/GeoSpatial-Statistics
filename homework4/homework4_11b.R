@@ -1,14 +1,15 @@
-library(ggplot2)
-library(ggmap)
+library(spdep)
 library(maps)
-library(mapdata)
+library(maptools)
+library(classInt)
+library(RColorBrewer)
 
 states <- map_data("state")
 states <- data.frame(states)
 
 state.sat.scores <- read.table("data/state-sat.dat", header=F)
 colnames(state.sat.scores) <- c("STATE","VERBAL","MATH","ELIGIBLE")
-?
+
 state.sat.scores[]
 x = ((state.sat.scores$STATE=="alaska") |
        (state.sat.scores$STATE=="hawaii") | 
@@ -16,7 +17,6 @@ x = ((state.sat.scores$STATE=="alaska") |
 index = c(1:nrow(state.sat.scores))[x]
 
 state.sat.scores <- data.frame(state.sat.scores[-index,])
-
 
 usa.state <- map(database="state", fill=TRUE, plot=FALSE)
 state.ID <- sapply(strsplit(usa.state$names, ":"),
@@ -51,6 +51,11 @@ stat.sat.car.w <- spautolm(ELIGIBLE~ VERBAL,
                            listw=usa.listw, 
                            zero.policy=TRUE)
 summary(stat.sat.car.w)
+
+
+state.sat.scores.fitted = fitted(state.sat.scores)
+state.sat.scores$fitted.car = state.sat.scores.fitted
+
 
 
 
