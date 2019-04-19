@@ -1,0 +1,207 @@
+---
+title: "Test 2 take home part"
+author: "Laha Ale"
+date: "April 5, 2019"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = F,message = F)
+```
+
+## Problem I
+
+```{r cod,eval=FALSE}
+model
+{
+   for( i in 1 : N ) {
+   lambda[i] ~dgamma(alpha,beta)
+   x[i] ~ dpois(lambda[i])
+	}
+	
+	alpha ~ dgamma(1.0E-3,1.0E-3)
+	beta ~ dgamma(1.0E-3,1.0E-3)
+}
+
+
+list(x = c(5, 6, 5, 10, 3, 9, 4, 4, 4, 12), N=10)
+	
+list(alpha=2, beta=1)
+```
+
+**The statistics for alpha and beta as follow:**
+
+```{r ex1, echo=F}
+library(OpenImageR)
+image = readImage("alpha_beta.png")
+imageShow(image)
+```
+Both  $\alpha$ and $\beta$  are initial as Gamma distribution. The density curves show relatively smooth. Moth MC errors are less than their standard deviation of 5% or more. CI with 95% credit set are $2.485 < \alpha < 283.6$  and  $0.3767< \beta< 45.51$ .
+
+
+**lambda density curve and statistics**
+
+```{r lambda_dense, echo=F}
+library(OpenImageR)
+image = readImage("lambda_dense.png")
+imageShow(image)
+```
+```{r lambda_stat, echo=F}
+library(OpenImageR)
+image = readImage("lambda_stat.png")
+imageShow(image)
+```
+summary statistics show in the above table, for example, $\lambda_1$ has $mean=5.882$ and standard deviation $\sigma_{\lambda} = 1.43$ MC, error=0.01483 is less than standard deviation of 5%, median=5.827, and 95% credible set $3.179 < \lambda < 8.916$. The distribution of $\lambda$ are close to normal distribution. Therefore, we can compute $P(\lambda_i|x)$ posterior as $P(\lambda|x) \sim N(\mu_{\lambda},\sigma_{\lambda})$.
+
+$P(\lambda_1|x) \sim N(5.882,1.43),P(\lambda_2|x) \sim N(6.158,1.465)$ \ \
+$P(\lambda_3|x) \sim N(5.884,1.427),P(\lambda_4|x) \sim N(7.235,1.811)$ \ \
+$P(\lambda_5|x) \sim N(5.342,1.455),P(\lambda_6|x) \sim N(6.964,1.685)$ \ \
+$P(\lambda_7|x) \sim N(5.615,1.431),P(\lambda_8|x) \sim N(5.619,1.428)$ \ \
+$P(\lambda_9|x) \sim N(5.616,1.426),P(\lambda_{10}|x) \sim N(7.775,2.087)$
+
+
+## Problem II
+
+```{r ex11_lib}
+library(spdep)
+library(maps)
+library(maptools)
+library(classInt)
+library(RColorBrewer)
+```
+
+### 1)
+
+```{r ex12_a}
+columbus.poly <- readShapePoly(system.file("etc/shapes/columbus.shp", package="spdep")[1])
+columbus.coords <- coordinates(columbus.poly)
+columbus.knn <- knearneigh(columbus.coords)
+columbus.knn2nb <- knn2nb(columbus.knn)
+columbus.dist.list <- nbdists(columbus.knn2nb, columbus.coords)
+columbus.dist.vec <- unlist(columbus.dist.list)
+columbus.dist.max <- max(columbus.dist.vec)
+columbus.dnn.nb <- dnearneigh(columbus.coords, 0, columbus.dist.max)
+
+
+#CAR model
+columbus.dnn.listw = nb2listw(columbus.dnn.nb, style="B", zero.policy=TRUE)
+columbus.dnn.car.out = spautolm(HOVAL~CRIME+NEIG+INC+OPEN+PLUMB+DISCBD, 
+                                data=columbus.poly, family="CAR",
+                                listw=columbus.dnn.listw, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.car.out)
+
+#SAR model
+columbus.dnn.sar.out = spautolm(HOVAL~CRIME+NEIG+INC+OPEN+PLUMB+DISCBD, 
+                                data=columbus.poly, family="SAR",
+                                listw=columbus.dnn.listw, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.sar.out)
+```
+CAR model with  the maximum intercentroid:
+
+$HOVAL = 37.50465-0.44467*CRIME-0.17553*NEIG+0.39586*INC+0.61076*OPEN+1.62740*PLUMB+3.40167*DISCBD$
+
+SAR model with the maximum intercentroid:
+
+$HOVAL = 37.56439-0.44620*CRIME-0.17537*NEIG+0.40230*INC+0.61093*OPEN+1.61595*PLUMB+3.37332*DISCBD$
+
+As we can see from the above models the HOVAL has a negative relation with CRIME and NEIG; and positive relation with INC, OPEN, PLUMB, and DISC BD. Based on p-value < 0.05 is significant, parameters CRIME and PLUMB are significant, and the rest of parameters NEIG, INC, OPEN and DISCBD are insignificant.And both models are spatial. According to  Log likelihood and AIC, the SAR models is sightly better.
+
+
+### 2)
+
+```{r ex12_ab}
+
+#CAR reduced model by backward elimination
+columbus.dnn.listw = nb2listw(columbus.dnn.nb, style="B", zero.policy=TRUE)
+columbus.dnn.car.out = spautolm(HOVAL~CRIME+OPEN+PLUMB+PLUMB, 
+                                data=columbus.poly, family="CAR",
+                                listw=columbus.dnn.listw, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.car.out)
+
+#CAR reduced model by backward elimination
+columbus.dnn.sar.out = spautolm(HOVAL~CRIME+OPEN+PLUMB+PLUMB, 
+                                data=columbus.poly, family="SAR",
+                                listw=columbus.dnn.listw, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.sar.out)
+
+
+
+#CAR reduced model by backward elimination
+columbus.dnn.listw = nb2listw(columbus.dnn.nb, style="B", zero.policy=TRUE)
+columbus.dnn.car.out = spautolm(HOVAL~CRIME+PLUMB, 
+                                data=columbus.poly, family="CAR",
+                                listw=columbus.dnn.listw, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.car.out)
+
+#CAR reduced model by backward elimination
+columbus.dnn.sar.out = spautolm(HOVAL~CRIME+PLUMB, 
+                                data=columbus.poly, family="SAR",
+                                listw=columbus.dnn.listw, 
+                                zero.policy=TRUE)
+summary(columbus.dnn.sar.out)
+```
+
+As we can see from above, first we move out NEIG and INC based highest p-values; and find out OPEN and DISCBD are still have p-value > 0.05; therefore, we move out those parameters to get the final model that all of the parameters have the p-value < 0.05.
+
+CAR reduced model:
+
+$HOVAL = 62.83945-0.77689*CRIME+1.27498*PLUMB$
+
+SAR reduced model:
+
+$HOVAL = 63.05601-0.78067*CRIME+1.25746*PLUMB$
+
+According to the p-value of Lambda, the above two models are not spatial. It makes sense that CRIME has a negative relationship with HOVAL(House value) because people do not want to buy a house located high crime ratio places for safety, and PLUMB positive relationship with HOVAL because of water supply is essential to daily life.
+
+### 3)
+
+```{r ex12_abc}
+library(geoR)
+library(spBayes)
+X_mean = mean(columbus.poly$X)
+print(paste("mean of X=",X_mean))
+Y_mean = mean(columbus.poly$Y)
+print(paste("mean of Y=",Y_mean))
+
+coords <- as.matrix(cbind(columbus.poly$X,columbus.poly$Y))
+HOVAL <- columbus.poly$HOVAL
+
+bins = 50
+max.dist <- max(iDist(coords))
+HOVAL.vario <- variog(coords = coords, data = HOVAL, 
+                       uvec = (seq(0, max.dist, length = bins)))
+plot(HOVAL.vario)
+
+```
+```{r 6x_eyefit,eval=F}
+#adjust paramters with eyefit
+eyefit(myscps.vario,silent=TRUE)
+```
+
+```{r ex6_3dd, echo=F}
+library(OpenImageR)
+image = readImage("eyefit.png")
+imageShow(image)
+```
+According step the above results, the following parameters should setting as $\sigma^2=488.5,\Phi=7.7$ and nugget=122.1.
+
+```{r ex6_k}
+library(spdep)
+
+point<-krige.conv(coords = coords,
+                  data = HOVAL,loc=c(length(HOVAL),1),
+                  krige=krige.control(cov.pars=c(331.5,8.4),
+                                      cov.model="exponential",
+                                      nugget=139.5))
+point
+pred_low <-point$predict - 2*sqrt(point$krige.var)
+pred_high <-point$predict + 2*sqrt(point$krige.var)
+print(paste("The PI is between",pred_low,"and",pred_high))
+```

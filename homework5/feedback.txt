@@ -1,0 +1,4 @@
+Good numeric work and results and you answered the basic questions, but you need to look more closely at the results. This is a Kriging, therefore you need to take a look and interpret the Y[i]s (the prediction)
+
+For the beetles example, is there an increased mortality for higher concentrations? You need to interpret these results as well. What the coefficients are telling you? (need to interpret a logistic regression).
+
