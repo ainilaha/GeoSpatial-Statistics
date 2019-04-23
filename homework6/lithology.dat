@@ -1,4 +1,4 @@
-Common Well Name	Northing (ft)	Easting (ft)	Surf Elevation (ft amsl)	Thickness(ft)	A-B Elevation (ft amsl)	Thickness(ft)	B-C Elevation (ft amsl)	Thickness(ft)	C-D Elevation (ft amsl)	Thickness(ft)
+Common_Well_Name	Northing(ft)	Easting(ft)	Surf_Elevation_(ft_amsl)	Thickness(ft)	A-B_Elevation(ft_amsl)	Thickness(ft)	B-C_Elevation_(ft_amsl)	Thickness(ft)	C-D_Elevation(ft_amsl)	Thickness(ft)
 76-1	669749	265343	5,009	7	4,983	9	4,921	0	4,790	>9
 76-2	669352	266118	5,010	12	4,989	4	4,924	0	4,789	>32
 76-3	669286	265161	5,010	18	4,988	3	4,917	26	4,790	>20
