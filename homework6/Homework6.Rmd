@@ -38,7 +38,7 @@ lithology_df <- lithology_df %>% filter( !is.na(Thickness_ft) &
 lithology_df$Surf_Elevation_ft_amsl <- as.numeric(lithology_df$Surf_Elevation_ft_amsl)
 lithology_df$A_B_Elevation_ft_amsl <- as.numeric(lithology_df$A_B_Elevation_ft_amsl)
 
-## Extract the coordinates
+# Extract the coordinates
 coords <- as.matrix(lithology_df[,c("Easting_ft","Northing_ft")])
 
 x.res <- 200; y.res <- 200
@@ -121,18 +121,18 @@ imageShow(image)
 
 log.thickness <- log(lithology_df$Thickness_ft)
 
-p <- 3 ## This is the number of columns in the design matrix
-## Set the prior mean and precision for the regression
+p <- 3 # This is the number of columns in the design matrix
+# Set the prior mean and precision for the regression
 beta.prior.mean <- as.matrix(rep(0, times=p))
 beta.prior.precision <- matrix(0, nrow=p, ncol=p)
 
-## For use with bayesGeostatExact, do the following
+# For use with bayesGeostatExact, do the following
 phi <- 0.014 ## Set the spatial range (from the variogram)
 alpha <- 0.016/0.08 ## Set the nugget/partial-sill ratio
 sigma.sq.prior.shape <- 0.1 ## Set IG shape for sigma.sq (partial sill)
 sigma.sq.prior.rate <- 0.1 ## Set IG scale for sigma.sq (partial sill)
 
-## Run bayesGeostatExact to deliver exact posterior samples
+# Run bayesGeostatExact to deliver exact posterior samples
 sp.exact <- bayesGeostatExact(
   log.thickness ~ Surf_Elevation_ft_amsl + A_B_Elevation_ft_amsl,
   data=lithology_df, coords=coords, n.samples=1000,
@@ -143,7 +143,7 @@ sp.exact <- bayesGeostatExact(
   sigma.sq.prior.shape=sigma.sq.prior.shape,
   sigma.sq.prior.rate=sigma.sq.prior.rate,
   sp.effects=FALSE)
-##Produce the posterior summaries
+#Produce the posterior summaries
 round(summary(sp.exact$p.samples)$quantiles,3)
 
 ```
@@ -156,7 +156,7 @@ phi <- 1/1100 ## Set the spatial range (from the variogram)
 alpha <- 0.094/0.58 ## Set the nugget/partial-sill ratio
 nu <- 0.5
 
-## Run bayesGeostatExact to deliver exact posterior samples
+# Run bayesGeostatExact to deliver exact posterior samples
 sp.exact <- bayesGeostatExact(
   log.thickness ~ Surf_Elevation_ft_amsl + A_B_Elevation_ft_amsl,
   data=lithology_df, coords=coords, n.samples=1000,
@@ -175,7 +175,7 @@ As we can see from the above results, the log Thickness has a negative correlati
 ### c)
 ```{r ex_6c}
 
-## Run spLM to deliver MCMC samples from marginal posterior distributions
+# Run spLM to deliver MCMC samples from marginal posterior distributions
 n.samples <- 1000
 thickness.sp <- spLM(log.thickness ~ Surf_Elevation_ft_amsl + A_B_Elevation_ft_amsl,
                data=lithology_df, coords=coords, 
@@ -188,19 +188,19 @@ thickness.sp <- spLM(log.thickness ~ Surf_Elevation_ft_amsl + A_B_Elevation_ft_a
 round(summary(mcmc(thickness.sp$p.theta.samples))$quantiles,3)
 
 
-## Recover spatial residuals using spRecover
+# Recover spatial residuals using spRecover
 burn.in <- floor(0.75*n.samples)
 thickness.sp <- spRecover(thickness.sp, start=burn.in, thin=2)
 
-## The posterior samples of the regression coefficients and the spatial effects can then be obtained as
+# The posterior samples of the regression coefficients and the spatial effects can then be obtained as
 beta.samples = thickness.sp$p.beta.recover.samples
 w.samples = thickness.sp$p.w.recover.samples
 
-## Obtain trace plots for regression coefficients
+# Obtain trace plots for regression coefficients
 par(mfrow=c(2,2))
 plot(beta.samples, auto.layout=TRUE, density=FALSE)
 par(mfrow=c(1,1))
-## Obtain posterior means and sd's of spatial residuals for each location
+# Obtain posterior means and sd's of spatial residuals for each location
 w.hat.mu <- apply(w.samples,1,mean)
 w.hat.sd <- apply(w.samples,1,sd)
 
@@ -258,6 +258,132 @@ Compare the two models with above DIC values, the second model with much nugget 
 
 
 
+## Excercise 7
+
+### a)
+
+
+```{r ex_7a}
+bat_df <- read.table("batonrouge.dat",header = T)
+
+# Extract the coordinates
+coords <- as.matrix(bat_df[,c("Longitude","Latitude")])
+
+# compute the variogram for exponential
+bins = 50
+max.dist <- 0.7*max(iDist(coords))
+log.selling.vario <- variog(coords = coords, data = bat_df$logSellingPr, 
+                          uvec = (seq(0, max.dist, length = bins)))
+```
+```{r ex7a_eyefit,eval=F}
+plot(log.selling.vario)
+eyefit(log.selling.vario,silent=TRUE)
+```
+```{r ex7_dd, echo=F}
+library(OpenImageR)
+image = readImage("exp_var_7a.png")
+imageShow(image)
+```
+
+### b)
+```{r ex_7b}
+# OLS 
+lm.log.selling = lm(logSellingPr~LivingArea + Age + OtherArea + Bathrooms, data=bat_df)
+lm.log.selling
+summary(lm.log.selling)
+```
+As we can see from the above results, the linear models is $logSellingPr = 10.2065918+0.0005892*LivingArea-0.0099027*Age+0.0001508*OtherArea-0.0512299*Bathrooms$, the model log selling price has a negative relationship with age and bathrooms. It is easy to understand that the old house should be cheaper, but it is a little strange about the bathrooms.  Mybe, the people, do not want to bathrooms occupy too much area of the house.
+
+
+### c)
+
+
+```{r ex_7c}
+# Obtain OLS residuals
+selling.resid = resid(lm.log.selling)
+selling.resid.vario <- variog(coords = coords, data = selling.resid, 
+                            uvec = (seq(0, max.dist, length = bins)))
+```
+```{r ex7c_eyefit,eval=F}
+plot(selling.resid.vario)
+eyefit(selling.resid.vario,silent=TRUE)
+```
+```{r ex7_dddc, echo=F}
+library(OpenImageR)
+image = readImage("exp_var_7c.png")
+imageShow(image)
+```
+
+### d)
+
+
+```{r ex_7d}
+# the values of sigma square, tau sqaure  and nugget are from the above ressults
+point<-krige.conv(coords = coords, data = bat_df$logSellingPr,loc=c(length(bat_df$logSellingPr),1),
+                  krige=krige.control(cov.pars=c(0.22,0.17),cov.model="exponential",nugget=0.05))
+point
+pred_low <-point$predict - 2*sqrt(point$krige.var)
+pred_high <-point$predict + 2*sqrt(point$krige.var)
+print(paste("The 95% confident PI is between",pred_low,"and",pred_high))
+```
+
+### e)
+Give above model:
+$logSellingPr = 10.2065918+0.0005892*LivingArea-0.0099027*Age+0.0001508*OtherArea-0.0512299*Bathrooms$
+
+```{r ex_7e}
+LivingArea <- 938
+Age <- 25
+OtherArea <- 332
+Bathrooms <- 3
+logSellingPr <- 10.2065918+0.0005892*LivingArea-0.0099027*Age+0.0001508*OtherArea-0.0512299*Bathrooms
+print(paste("predict results=",logSellingPr))
+```
+As we can see, the predict results is 10.40807, and the true value is 10.448, which is very good prediction.
+
+### f)
+
+```{r ex_7f}
+
+n.samples = 1000
+
+log.selling.mcmc <- spLM(logSellingPr~LivingArea + Age + OtherArea + Bathrooms, 
+                         data=bat_df,
+                         coords=coords, 
+                         starting=list("phi"=0.17,"sigma.sq"=0.22,
+                                       "tau.sq"=0.05), 
+                         tuning=list("phi"=0.1, "sigma.sq"=0.05, "tau.sq"=0.05),
+                         priors=list("phi.Unif"=c(3/1500, 10),
+                                     "sigma.sq.IG"=c(0.1, 0.1),
+                                     "tau.sq.IG"=c(0.1, 0.1)), 
+                         cov.model="exponential",n.samples=n.samples)
+
+
+round(summary(mcmc(log.selling.mcmc$p.theta.samples))$quantiles,3)
+
+burn.in <- floor(0.75*n.samples)
+log.selling.mcmc <- spRecover(log.selling.mcmc, start=burn.in, thin=2)
+Dic1 = spDiag(log.selling.mcmc,start=burn.in,verbose=FALSE)
+Dic1
+```
+The DIC is considerably small, but I cannot compare with other models, because other model donot have DIC.
+
+
+
+### g)
+
+```{r ex_7g}
+
+beta.samples = log.selling.mcmc$p.beta.recover.samples
+w.samples = log.selling.mcmc$p.w.recover.samples
+## Obtain posterior means and sd's of spatial residuals for each location
+w.hat.mu <- apply(w.samples,1,mean)
+w.hat.mu
+w.hat.sd <- apply(w.samples,1,sd)
+w.hat.sd
+summary(w.hat.mu)
+summary(w.hat.sd)
+```
 
 
 
